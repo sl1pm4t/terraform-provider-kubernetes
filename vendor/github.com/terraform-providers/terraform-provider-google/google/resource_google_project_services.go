@@ -14,9 +14,6 @@ func resourceGoogleProjectServices() *schema.Resource {
 		Read:   resourceGoogleProjectServicesRead,
 		Update: resourceGoogleProjectServicesUpdate,
 		Delete: resourceGoogleProjectServicesDelete,
-		Importer: &schema.ResourceImporter{
-			State: schema.ImportStatePassthrough,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"project": &schema.Schema{
@@ -36,7 +33,7 @@ func resourceGoogleProjectServices() *schema.Resource {
 
 // These services can only be enabled as a side-effect of enabling other services,
 // so don't bother storing them in the config or using them for diffing.
-var ignoreProjectServices = map[string]struct{}{
+var ignore = map[string]struct{}{
 	"containeranalysis.googleapis.com": struct{}{},
 	"dataproc-control.googleapis.com":  struct{}{},
 	"source.googleapis.com":            struct{}{},
@@ -50,7 +47,7 @@ func resourceGoogleProjectServicesCreate(d *schema.ResourceData, meta interface{
 	cfgServices := getConfigServices(d)
 
 	// Get services from API
-	apiServices, err := getApiServices(pid, config, ignoreProjectServices)
+	apiServices, err := getApiServices(pid, config)
 	if err != nil {
 		return fmt.Errorf("Error creating services: %v", err)
 	}
@@ -69,12 +66,11 @@ func resourceGoogleProjectServicesCreate(d *schema.ResourceData, meta interface{
 func resourceGoogleProjectServicesRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	services, err := getApiServices(d.Id(), config, ignoreProjectServices)
+	services, err := getApiServices(d.Id(), config)
 	if err != nil {
 		return err
 	}
 
-	d.Set("project", d.Id())
 	d.Set("services", services)
 	return nil
 }
@@ -88,7 +84,7 @@ func resourceGoogleProjectServicesUpdate(d *schema.ResourceData, meta interface{
 	cfgServices := getConfigServices(d)
 
 	// Get services from API
-	apiServices, err := getApiServices(pid, config, ignoreProjectServices)
+	apiServices, err := getApiServices(pid, config)
 	if err != nil {
 		return fmt.Errorf("Error updating services: %v", err)
 	}
@@ -164,7 +160,7 @@ func getConfigServices(d *schema.ResourceData) (services []string) {
 }
 
 // Retrieve a project's services from the API
-func getApiServices(pid string, config *Config, ignore map[string]struct{}) ([]string, error) {
+func getApiServices(pid string, config *Config) ([]string, error) {
 	apiServices := make([]string, 0)
 	// Get services from the API
 	token := ""
@@ -186,39 +182,27 @@ func getApiServices(pid string, config *Config, ignore map[string]struct{}) ([]s
 
 func enableService(s, pid string, config *Config) error {
 	esr := newEnableServiceRequest(pid)
-	err := retry(func() error {
-		sop, err := config.clientServiceMan.Services.Enable(s, esr).Do()
-		if err != nil {
-			return err
-		}
-		waitErr := serviceManagementOperationWait(config, sop, "api to enable")
-		if waitErr != nil {
-			return waitErr
-		}
-		return nil
-	})
+	sop, err := config.clientServiceMan.Services.Enable(s, esr).Do()
 	if err != nil {
 		return fmt.Errorf("Error enabling service %q for project %q: %v", s, pid, err)
 	}
+	// Wait for the operation to complete
+	waitErr := serviceManagementOperationWait(config, sop, "api to enable")
+	if waitErr != nil {
+		return waitErr
+	}
 	return nil
 }
-
 func disableService(s, pid string, config *Config) error {
 	dsr := newDisableServiceRequest(pid)
-	err := retry(func() error {
-		sop, err := config.clientServiceMan.Services.Disable(s, dsr).Do()
-		if err != nil {
-			return err
-		}
-		// Wait for the operation to complete
-		waitErr := serviceManagementOperationWait(config, sop, "api to disable")
-		if waitErr != nil {
-			return waitErr
-		}
-		return nil
-	})
+	sop, err := config.clientServiceMan.Services.Disable(s, dsr).Do()
 	if err != nil {
 		return fmt.Errorf("Error disabling service %q for project %q: %v", s, pid, err)
+	}
+	// Wait for the operation to complete
+	waitErr := serviceManagementOperationWait(config, sop, "api to disable")
+	if waitErr != nil {
+		return waitErr
 	}
 	return nil
 }

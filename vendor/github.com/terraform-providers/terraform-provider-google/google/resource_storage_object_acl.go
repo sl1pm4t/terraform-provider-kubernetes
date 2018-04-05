@@ -84,7 +84,7 @@ func resourceStorageObjectAclCreate(d *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("Error updating object %s: %v", bucket, err)
 		}
 
-		return resourceStorageObjectAclRead(d, meta)
+		return resourceStorageBucketAclRead(d, meta)
 	} else if len(role_entity) > 0 {
 		for _, v := range role_entity {
 			pair, err := getRoleEntityPair(v.(string))

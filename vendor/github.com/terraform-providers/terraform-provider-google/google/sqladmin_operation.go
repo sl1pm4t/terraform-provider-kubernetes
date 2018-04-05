@@ -56,11 +56,11 @@ func (e SqlAdminOperationError) Error() string {
 	return buf.String()
 }
 
-func sqladminOperationWait(config *Config, op *sqladmin.Operation, project, activity string) error {
+func sqladminOperationWait(config *Config, op *sqladmin.Operation, activity string) error {
 	w := &SqlAdminOperationWaiter{
 		Service: config.clientSqlAdmin,
 		Op:      op,
-		Project: project,
+		Project: config.Project,
 	}
 
 	state := w.Conf()
