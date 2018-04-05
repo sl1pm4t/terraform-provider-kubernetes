@@ -76,6 +76,21 @@ func flattenPodSpec(in v1.PodSpec) ([]interface{}, error) {
 	return []interface{}{att}, nil
 }
 
+func flattenPodTemplateSpec(in v1.PodTemplateSpec, d *schema.ResourceData) ([]interface{}, error) {
+	att := make(map[string]interface{})
+
+	meta := flattenMetadata(in.ObjectMeta, d)
+	att["metadata"] = meta
+
+	podSpec, err := flattenPodSpec(in.Spec)
+	if err != nil {
+		return nil, err
+	}
+	att["spec"] = podSpec
+
+	return []interface{}{att}, nil
+}
+
 func flattenPodSecurityContext(in *v1.PodSecurityContext) []interface{} {
 	att := make(map[string]interface{})
 	if in.FSGroup != nil {
@@ -316,6 +331,23 @@ func flattenSecretVolumeSource(in *v1.SecretVolumeSource) []interface{} {
 }
 
 // Expanders
+
+func expandPodTemplateSpec(template map[string]interface{}) (v1.PodTemplateSpec, error) {
+	obj := v1.PodTemplateSpec{}
+
+	podSpec, err := expandPodSpec(template["spec"].([]interface{}))
+	if err != nil {
+		return obj, err
+	}
+	obj.Spec = podSpec
+
+	if metaCfg, ok := template["metadata"]; ok {
+		metadata := expandMetadata(metaCfg.([]interface{}))
+		obj.ObjectMeta = metadata
+	}
+
+	return obj, nil
+}
 
 func expandPodSpec(p []interface{}) (v1.PodSpec, error) {
 	obj := v1.PodSpec{}

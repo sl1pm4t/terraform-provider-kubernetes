@@ -2,11 +2,10 @@ package kubernetes
 
 import (
 	"github.com/hashicorp/terraform/helper/schema"
-	"k8s.io/client-go/pkg/api/v1"
 	batchv1 "k8s.io/client-go/pkg/apis/batch/v1"
 )
 
-func flattenJobSpec(in batchv1.JobSpec) ([]interface{}, error) {
+func flattenJobSpec(in batchv1.JobSpec, d *schema.ResourceData) ([]interface{}, error) {
 	att := make(map[string]interface{})
 
 	if in.ActiveDeadlineSeconds != nil {
@@ -29,7 +28,18 @@ func flattenJobSpec(in batchv1.JobSpec) ([]interface{}, error) {
 		att["selector"] = flattenLabelSelector(in.Selector)
 	}
 
-	podSpec, err := flattenPodSpec(in.Template.Spec)
+	// Remove server-generated labels
+	labels := in.Template.ObjectMeta.Labels
+
+	if _, ok := labels["controller-uid"]; ok {
+		delete(labels, "controller-uid")
+	}
+
+	if _, ok := labels["job-name"]; ok {
+		delete(labels, "job-name")
+	}
+
+	podSpec, err := flattenPodTemplateSpec(in.Template, d)
 	if err != nil {
 		return nil, err
 	}
@@ -67,13 +77,13 @@ func expandJobSpec(j []interface{}) (batchv1.JobSpec, error) {
 		obj.Selector = expandLabelSelector(v)
 	}
 
-	podSpec, err := expandPodSpec(in["template"].([]interface{}))
-	if err != nil {
-		return obj, err
-	}
-
-	obj.Template = v1.PodTemplateSpec{
-		Spec: podSpec,
+	for _, v := range in["template"].([]interface{}) {
+		template := v.(map[string]interface{})
+		pts, err := expandPodTemplateSpec(template)
+		if err != nil {
+			return obj, err
+		}
+		obj.Template = pts
 	}
 
 	return obj, nil
@@ -83,7 +93,6 @@ func patchJobSpec(pathPrefix, prefix string, d *schema.ResourceData) (PatchOpera
 	ops := make([]PatchOperation, 0)
 
 	if d.HasChange(prefix + "active_deadline_seconds") {
-
 		v := d.Get(prefix + "active_deadline_seconds").(int)
 		ops = append(ops, &ReplaceOperation{
 			Path:  pathPrefix + "/activeDeadlineSeconds",

@@ -70,9 +70,16 @@ func metadataSchema(objectName string, generatableName bool) *schema.Schema {
 	}
 
 	metadataRequired := true
+	metadataComputed := false
 	switch objectName {
 	case "deploymentSpec":
 		metadataRequired = false
+	case "podTemplateSpec":
+		metadataRequired = false
+		metadataComputed = true
+	case "jobTemplateSpec":
+		metadataRequired = false
+		metadataComputed = true
 	}
 
 	return &schema.Schema{
@@ -80,6 +87,7 @@ func metadataSchema(objectName string, generatableName bool) *schema.Schema {
 		Description: fmt.Sprintf("Standard %s's metadata. More info: https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#metadata", objectName),
 		Required:    metadataRequired,
 		Optional:    !metadataRequired,
+		Computed:    metadataComputed,
 		MaxItems:    1,
 		Elem: &schema.Resource{
 			Schema: fields,

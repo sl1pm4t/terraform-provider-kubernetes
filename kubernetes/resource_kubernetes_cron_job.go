@@ -92,7 +92,7 @@ func resourceKubernetesCronJobUpdate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[INFO] Updating cron job %s: %s", d.Id(), ops)
 
-	out, err :=  conn.BatchV2alpha1().CronJobs(namespace).Patch(name, pkgApi.JSONPatchType, data)
+	out, err := conn.BatchV2alpha1().CronJobs(namespace).Patch(name, pkgApi.JSONPatchType, data)
 	if err != nil {
 		return err
 	}
@@ -111,7 +111,7 @@ func resourceKubernetesCronJobRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	log.Printf("[INFO] Reading cron job %s", name)
-	job, err :=  conn.BatchV2alpha1().CronJobs(namespace).Get(name, metav1.GetOptions{})
+	job, err := conn.BatchV2alpha1().CronJobs(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		log.Printf("[DEBUG] Received error: %#v", err)
 		return err
@@ -130,7 +130,10 @@ func resourceKubernetesCronJobRead(d *schema.ResourceData, meta interface{}) err
 			delete(labels, "cron-job-name")
 		}
 
-		labels = job.Spec.JobTemplate.Spec.Selector.MatchLabels
+		if job.Spec.JobTemplate.Spec.Selector != nil &&
+			job.Spec.JobTemplate.Spec.Selector.MatchLabels != nil {
+			labels = job.Spec.JobTemplate.Spec.Selector.MatchLabels
+		}
 
 		if _, ok := labels["controller-uid"]; ok {
 			delete(labels, "controller-uid")
@@ -142,7 +145,7 @@ func resourceKubernetesCronJobRead(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	jobSpec, err := flattenCronJobSpec(job.Spec)
+	jobSpec, err := flattenCronJobSpec(job.Spec, d)
 	if err != nil {
 		return err
 	}
