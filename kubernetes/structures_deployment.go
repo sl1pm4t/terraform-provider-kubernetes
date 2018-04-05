@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/pkg/apis/extensions/v1beta1"
 )
 
@@ -97,18 +96,11 @@ func expandDeploymentSpec(deployment []interface{}) (v1beta1.DeploymentSpec, err
 
 	for _, v := range in["template"].([]interface{}) {
 		template := v.(map[string]interface{})
-		podSpec, err := expandPodSpec(template["spec"].([]interface{}))
+		pts, err := expandPodTemplateSpec(template)
 		if err != nil {
 			return obj, err
 		}
-		obj.Template = v1.PodTemplateSpec{
-			Spec: podSpec,
-		}
-
-		if metaCfg, ok := template["metadata"]; ok {
-			metadata := expandMetadata(metaCfg.([]interface{}))
-			obj.Template.ObjectMeta = metadata
-		}
+		obj.Template = pts
 	}
 
 	return obj, nil

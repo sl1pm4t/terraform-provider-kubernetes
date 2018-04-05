@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"google.golang.org/api/compute/v1"
@@ -17,10 +18,18 @@ func resourceComputeBackendBucket() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateGCPName,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					re := `^(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?)$`
+					if !regexp.MustCompile(re).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q (%q) doesn't match regexp %q", k, value, re))
+					}
+					return
+				},
 			},
 
 			"bucket_name": &schema.Schema{
@@ -87,7 +96,7 @@ func resourceComputeBackendBucketCreate(d *schema.ResourceData, meta interface{}
 	d.SetId(bucket.Name)
 
 	// Wait for the operation to complete
-	waitErr := computeOperationWait(config.clientCompute, op, project, "Creating Backend Bucket")
+	waitErr := computeOperationWaitGlobal(config, op, project, "Creating Backend Bucket")
 	if waitErr != nil {
 		// The resource didn't actually create
 		d.SetId("")
@@ -150,7 +159,7 @@ func resourceComputeBackendBucketUpdate(d *schema.ResourceData, meta interface{}
 
 	d.SetId(bucket.Name)
 
-	err = computeOperationWait(config.clientCompute, op, project, "Updating Backend Bucket")
+	err = computeOperationWaitGlobal(config, op, project, "Updating Backend Bucket")
 	if err != nil {
 		return err
 	}
@@ -173,7 +182,7 @@ func resourceComputeBackendBucketDelete(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error deleting backend bucket: %s", err)
 	}
 
-	err = computeOperationWait(config.clientCompute, op, project, "Deleting Backend Bucket")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Backend Bucket")
 	if err != nil {
 		return err
 	}

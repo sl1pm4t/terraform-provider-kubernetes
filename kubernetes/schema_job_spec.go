@@ -83,10 +83,15 @@ func jobSpecFields() map[string]*schema.Schema {
 			Required:    true,
 			MaxItems:    1,
 			Elem: &schema.Resource{
-				Schema: podSpecFields(false),
+				Schema: podTemplateSpecFields(false),
 			},
 		},
 	}
+
+	// fix restart_policy for job resources
+	s["template"].Elem.(*schema.Resource).
+		Schema["spec"].Elem.(*schema.Resource).
+		Schema["restart_policy"].Default = "OnFailure"
 
 	return s
 }

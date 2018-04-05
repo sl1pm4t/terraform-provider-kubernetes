@@ -4,6 +4,22 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+func podTemplateSpecFields(isUpdatable bool) map[string]*schema.Schema {
+	s := map[string]*schema.Schema{
+		"metadata": metadataSchema("podTemplateSpec", true),
+		"spec": {
+			Type:        schema.TypeList,
+			Description: "Specification of the desired behavior of the job",
+			Required:    true,
+			MaxItems:    1,
+			Elem: &schema.Resource{
+				Schema: podSpecFields(isUpdatable),
+			},
+		},
+	}
+	return s
+}
+
 func podSpecFields(isUpdatable bool) map[string]*schema.Schema {
 	s := map[string]*schema.Schema{
 		"active_deadline_seconds": {

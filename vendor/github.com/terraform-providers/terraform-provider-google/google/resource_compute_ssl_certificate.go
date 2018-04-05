@@ -17,10 +17,9 @@ func resourceComputeSslCertificate() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"certificate": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				Sensitive: true,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"name": &schema.Schema{
@@ -29,7 +28,15 @@ func resourceComputeSslCertificate() *schema.Resource {
 				Computed:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"name_prefix"},
-				ValidateFunc:  validateGCPName,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					// https://cloud.google.com/compute/docs/reference/latest/sslCertificates#resource
+					value := v.(string)
+					if len(value) > 63 {
+						errors = append(errors, fmt.Errorf(
+							"%q cannot be longer than 63 characters", k))
+					}
+					return
+				},
 			},
 
 			"name_prefix": &schema.Schema{
@@ -49,10 +56,9 @@ func resourceComputeSslCertificate() *schema.Resource {
 			},
 
 			"private_key": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  true,
-				Sensitive: true,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"description": &schema.Schema{
@@ -61,7 +67,7 @@ func resourceComputeSslCertificate() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"certificate_id": &schema.Schema{
+			"id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -115,7 +121,7 @@ func resourceComputeSslCertificateCreate(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error creating ssl certificate: %s", err)
 	}
 
-	err = computeOperationWait(config.clientCompute, op, project, "Creating SslCertificate")
+	err = computeOperationWaitGlobal(config, op, project, "Creating SslCertificate")
 	if err != nil {
 		return err
 	}
@@ -140,7 +146,7 @@ func resourceComputeSslCertificateRead(d *schema.ResourceData, meta interface{})
 	}
 
 	d.Set("self_link", cert.SelfLink)
-	d.Set("certificate_id", strconv.FormatUint(cert.Id, 10))
+	d.Set("id", strconv.FormatUint(cert.Id, 10))
 
 	return nil
 }
@@ -159,7 +165,7 @@ func resourceComputeSslCertificateDelete(d *schema.ResourceData, meta interface{
 		return fmt.Errorf("Error deleting ssl certificate: %s", err)
 	}
 
-	err = computeOperationWait(config.clientCompute, op, project, "Deleting SslCertificate")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting SslCertificate")
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
 	compute "google.golang.org/api/compute/v1"
 )
 
@@ -25,9 +24,15 @@ func dataSourceGoogleComputeZones() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"status": {
-				Type:         schema.TypeString,
-				Optional:     true,
-				ValidateFunc: validation.StringInSlice([]string{"UP", "DOWN"}, false),
+				Type:     schema.TypeString,
+				Optional: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, es []error) {
+					value := v.(string)
+					if value != "UP" && value != "DOWN" {
+						es = append(es, fmt.Errorf("%q can only be 'UP' or 'DOWN' (%q given)", k, value))
+					}
+					return
+				},
 			},
 		},
 	}

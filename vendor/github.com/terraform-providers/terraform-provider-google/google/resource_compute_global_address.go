@@ -5,8 +5,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/helper/validation"
-
 	"google.golang.org/api/compute/v1"
 )
 
@@ -18,7 +16,6 @@ func resourceComputeGlobalAddress() *schema.Resource {
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
 		},
-
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -26,22 +23,15 @@ func resourceComputeGlobalAddress() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"ip_version": &schema.Schema{
-				Type:         schema.TypeString,
-				Optional:     true,
-				ForceNew:     true,
-				ValidateFunc: validation.StringInSlice([]string{"IPV4", "IPV6"}, false),
+			"address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-			},
-
-			"address": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
 			},
 
 			"self_link": &schema.Schema{
@@ -61,12 +51,9 @@ func resourceComputeGlobalAddressCreate(d *schema.ResourceData, meta interface{}
 	}
 
 	// Build the address parameter
-	addr := &compute.Address{
-		Name:      d.Get("name").(string),
-		IpVersion: d.Get("ip_version").(string),
-	}
-
-	op, err := config.clientCompute.GlobalAddresses.Insert(project, addr).Do()
+	addr := &compute.Address{Name: d.Get("name").(string)}
+	op, err := config.clientCompute.GlobalAddresses.Insert(
+		project, addr).Do()
 	if err != nil {
 		return fmt.Errorf("Error creating address: %s", err)
 	}
@@ -74,7 +61,7 @@ func resourceComputeGlobalAddressCreate(d *schema.ResourceData, meta interface{}
 	// It probably maybe worked, so store the ID now
 	d.SetId(addr.Name)
 
-	err = computeSharedOperationWait(config.clientCompute, op, project, "Creating Global Address")
+	err = computeOperationWaitGlobal(config, op, project, "Creating Global Address")
 	if err != nil {
 		return err
 	}
@@ -90,15 +77,15 @@ func resourceComputeGlobalAddressRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	addr, err := config.clientCompute.GlobalAddresses.Get(project, d.Id()).Do()
+	addr, err := config.clientCompute.GlobalAddresses.Get(
+		project, d.Id()).Do()
 	if err != nil {
 		return handleNotFoundError(err, d, fmt.Sprintf("Global Address %q", d.Get("name").(string)))
 	}
 
-	d.Set("name", addr.Name)
-	d.Set("ip_version", addr.IpVersion)
 	d.Set("address", addr.Address)
-	d.Set("self_link", ConvertSelfLinkToV1(addr.SelfLink))
+	d.Set("self_link", addr.SelfLink)
+	d.Set("name", addr.Name)
 
 	return nil
 }
@@ -113,12 +100,13 @@ func resourceComputeGlobalAddressDelete(d *schema.ResourceData, meta interface{}
 
 	// Delete the address
 	log.Printf("[DEBUG] address delete request")
-	op, err := config.clientCompute.GlobalAddresses.Delete(project, d.Id()).Do()
+	op, err := config.clientCompute.GlobalAddresses.Delete(
+		project, d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error deleting address: %s", err)
 	}
 
-	err = computeSharedOperationWait(config.clientCompute, op, project, "Deleting Global Address")
+	err = computeOperationWaitGlobal(config, op, project, "Deleting Global Address")
 	if err != nil {
 		return err
 	}

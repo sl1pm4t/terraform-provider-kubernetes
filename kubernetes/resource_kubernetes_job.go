@@ -38,9 +38,6 @@ func resourceKubernetesJob() *schema.Resource {
 			},
 		},
 	}
-	s.Schema["spec"].Elem.(*schema.Resource).
-		Schema["template"].Elem.(*schema.Resource).
-		Schema["restart_policy"].Default = "OnFailure"
 
 	return s
 }
@@ -165,12 +162,17 @@ func resourceKubernetesJobRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	job.ObjectMeta.Labels = reconcileTopLevelLabels(
+		job.ObjectMeta.Labels,
+		expandMetadata(d.Get("metadata").([]interface{})),
+		expandMetadata(d.Get("spec.0.template.0.metadata").([]interface{})),
+	)
 	err = d.Set("metadata", flattenMetadata(job.ObjectMeta, d))
 	if err != nil {
 		return err
 	}
 
-	jobSpec, err := flattenJobSpec(job.Spec)
+	jobSpec, err := flattenJobSpec(job.Spec, d)
 	if err != nil {
 		return err
 	}

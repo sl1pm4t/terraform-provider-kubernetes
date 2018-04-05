@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"regexp"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -19,10 +20,18 @@ func resourceComputeRegionBackendService() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				ForceNew:     true,
-				ValidateFunc: validateGCPName,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+				ValidateFunc: func(v interface{}, k string) (ws []string, errors []error) {
+					value := v.(string)
+					re := `^(?:[a-z](?:[-a-z0-9]{0,61}[a-z0-9])?)$`
+					if !regexp.MustCompile(re).MatchString(value) {
+						errors = append(errors, fmt.Errorf(
+							"%q (%q) doesn't match regexp %q", k, value, re))
+					}
+					return
+				},
 			},
 
 			"health_checks": &schema.Schema{
@@ -121,12 +130,8 @@ func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta inte
 		LoadBalancingScheme: "INTERNAL",
 	}
 
-	var err error
 	if v, ok := d.GetOk("backend"); ok {
-		service.Backends, err = expandBackends(v.(*schema.Set).List())
-		if err != nil {
-			return err
-		}
+		service.Backends = expandBackends(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("description"); ok {
@@ -175,7 +180,7 @@ func resourceComputeRegionBackendServiceCreate(d *schema.ResourceData, meta inte
 
 	d.SetId(service.Name)
 
-	err = computeOperationWait(config.clientCompute, op, project, "Creating Region Backend Service")
+	err = computeOperationWaitRegion(config, op, project, region, "Creating Region Backend Service")
 	if err != nil {
 		return err
 	}
@@ -243,10 +248,7 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 
 	// Optional things
 	if v, ok := d.GetOk("backend"); ok {
-		service.Backends, err = expandBackends(v.(*schema.Set).List())
-		if err != nil {
-			return err
-		}
+		service.Backends = expandBackends(v.(*schema.Set).List())
 	}
 	if v, ok := d.GetOk("description"); ok {
 		service.Description = v.(string)
@@ -278,7 +280,7 @@ func resourceComputeRegionBackendServiceUpdate(d *schema.ResourceData, meta inte
 
 	d.SetId(service.Name)
 
-	err = computeOperationWait(config.clientCompute, op, project, "Updating Backend Service")
+	err = computeOperationWaitRegion(config, op, project, region, "Updating Backend Service")
 	if err != nil {
 		return err
 	}
@@ -306,7 +308,7 @@ func resourceComputeRegionBackendServiceDelete(d *schema.ResourceData, meta inte
 		return fmt.Errorf("Error deleting backend service: %s", err)
 	}
 
-	err = computeOperationWait(config.clientCompute, op, project, "Deleting Backend Service")
+	err = computeOperationWaitRegion(config, op, project, region, "Deleting Backend Service")
 	if err != nil {
 		return err
 	}

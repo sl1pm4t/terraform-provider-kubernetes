@@ -16,9 +16,6 @@ func resourceComputeSubnetwork() *schema.Resource {
 		Read:   resourceComputeSubnetworkRead,
 		Update: resourceComputeSubnetworkUpdate,
 		Delete: resourceComputeSubnetworkDelete,
-		Importer: &schema.ResourceImporter{
-			State: resourceComputeSubnetworkImportState,
-		},
 
 		Schema: map[string]*schema.Schema{
 			"ip_cidr_range": &schema.Schema{
@@ -34,10 +31,9 @@ func resourceComputeSubnetwork() *schema.Resource {
 			},
 
 			"network": &schema.Schema{
-				Type:             schema.TypeString,
-				Required:         true,
-				ForceNew:         true,
-				DiffSuppressFunc: compareSelfLinkOrResourceName,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"description": &schema.Schema{
@@ -68,27 +64,6 @@ func resourceComputeSubnetwork() *schema.Resource {
 				Optional: true,
 			},
 
-			"secondary_ip_range": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"range_name": &schema.Schema{
-							Type:         schema.TypeString,
-							Required:     true,
-							ForceNew:     true,
-							ValidateFunc: validateGCPName,
-						},
-						"ip_cidr_range": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-					},
-				},
-			},
-
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -97,12 +72,19 @@ func resourceComputeSubnetwork() *schema.Resource {
 	}
 }
 
+func createSubnetID(s *compute.Subnetwork) string {
+	return fmt.Sprintf("%s/%s", s.Region, s.Name)
+}
+
+func splitSubnetID(id string) (region string, name string) {
+	parts := strings.Split(id, "/")
+	region = parts[0]
+	name = parts[1]
+	return
+}
+
 func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	network, err := ParseNetworkFieldValue(d.Get("network").(string), d, config)
-	if err != nil {
-		return err
-	}
 
 	region, err := getRegion(d, config)
 	if err != nil {
@@ -114,19 +96,23 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	network, err := getNetworkLink(d, config, "network")
+	if err != nil {
+		return err
+	}
+
 	// Build the subnetwork parameters
 	subnetwork := &compute.Subnetwork{
 		Name:                  d.Get("name").(string),
 		Description:           d.Get("description").(string),
 		IpCidrRange:           d.Get("ip_cidr_range").(string),
 		PrivateIpGoogleAccess: d.Get("private_ip_google_access").(bool),
-		SecondaryIpRanges:     expandSecondaryRanges(d.Get("secondary_ip_range").([]interface{})),
-		Network:               network.RelativeLink(),
+		Network:               network,
 	}
 
 	log.Printf("[DEBUG] Subnetwork insert request: %#v", subnetwork)
-
-	op, err := config.clientCompute.Subnetworks.Insert(project, region, subnetwork).Do()
+	op, err := config.clientCompute.Subnetworks.Insert(
+		project, region, subnetwork).Do()
 
 	if err != nil {
 		return fmt.Errorf("Error creating subnetwork: %s", err)
@@ -140,7 +126,7 @@ func resourceComputeSubnetworkCreate(d *schema.ResourceData, meta interface{}) e
 	subnetwork.Region = region
 	d.SetId(createSubnetID(subnetwork))
 
-	err = computeSharedOperationWait(config.clientCompute, op, project, "Creating Subnetwork")
+	err = computeOperationWaitRegion(config, op, project, region, "Creating Subnetwork")
 	if err != nil {
 		return err
 	}
@@ -163,19 +149,14 @@ func resourceComputeSubnetworkRead(d *schema.ResourceData, meta interface{}) err
 
 	name := d.Get("name").(string)
 
-	subnetwork, err := config.clientCompute.Subnetworks.Get(project, region, name).Do()
+	subnetwork, err := config.clientCompute.Subnetworks.Get(
+		project, region, name).Do()
 	if err != nil {
 		return handleNotFoundError(err, d, fmt.Sprintf("Subnetwork %q", name))
 	}
 
-	d.Set("name", subnetwork.Name)
-	d.Set("ip_cidr_range", subnetwork.IpCidrRange)
-	d.Set("network", subnetwork.Network)
-	d.Set("description", subnetwork.Description)
-	d.Set("private_ip_google_access", subnetwork.PrivateIpGoogleAccess)
 	d.Set("gateway_address", subnetwork.GatewayAddress)
-	d.Set("secondary_ip_range", flattenSecondaryRanges(subnetwork.SecondaryIpRanges))
-	d.Set("self_link", ConvertSelfLinkToV1(subnetwork.SelfLink))
+	d.Set("self_link", subnetwork.SelfLink)
 
 	return nil
 }
@@ -201,15 +182,13 @@ func resourceComputeSubnetworkUpdate(d *schema.ResourceData, meta interface{}) e
 		}
 
 		log.Printf("[DEBUG] Updating Subnetwork PrivateIpGoogleAccess %q: %#v", d.Id(), subnetworksSetPrivateIpGoogleAccessRequest)
-
 		op, err := config.clientCompute.Subnetworks.SetPrivateIpGoogleAccess(
 			project, region, d.Get("name").(string), subnetworksSetPrivateIpGoogleAccessRequest).Do()
-
 		if err != nil {
 			return fmt.Errorf("Error updating subnetwork PrivateIpGoogleAccess: %s", err)
 		}
 
-		err = computeSharedOperationWait(config.clientCompute, op, project, "Updating Subnetwork PrivateIpGoogleAccess")
+		err = computeOperationWaitRegion(config, op, project, region, "Updating Subnetwork PrivateIpGoogleAccess")
 		if err != nil {
 			return err
 		}
@@ -242,67 +221,11 @@ func resourceComputeSubnetworkDelete(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error deleting subnetwork: %s", err)
 	}
 
-	err = computeSharedOperationWait(config.clientCompute, op, project, "Deleting Subnetwork")
+	err = computeOperationWaitRegion(config, op, project, region, "Deleting Subnetwork")
 	if err != nil {
 		return err
 	}
 
 	d.SetId("")
 	return nil
-}
-
-func resourceComputeSubnetworkImportState(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-	parts := strings.Split(d.Id(), "/")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("Invalid compute subnetwork specifier. Expecting {region}/{name}")
-	}
-
-	region, name := parts[0], parts[1]
-	d.Set("region", region)
-	d.Set("name", name)
-
-	d.SetId(createSubnetID(&compute.Subnetwork{
-		Region: region,
-		Name:   name,
-	}))
-
-	return []*schema.ResourceData{d}, nil
-}
-
-func createSubnetID(s *compute.Subnetwork) string {
-	return fmt.Sprintf("%s/%s", s.Region, s.Name)
-}
-
-func splitSubnetID(id string) (region string, name string) {
-	parts := strings.Split(id, "/")
-	region = parts[0]
-	name = parts[1]
-	return
-}
-
-func expandSecondaryRanges(configured []interface{}) []*compute.SubnetworkSecondaryRange {
-	secondaryRanges := make([]*compute.SubnetworkSecondaryRange, 0, len(configured))
-	for _, raw := range configured {
-		data := raw.(map[string]interface{})
-		secondaryRange := compute.SubnetworkSecondaryRange{
-			RangeName:   data["range_name"].(string),
-			IpCidrRange: data["ip_cidr_range"].(string),
-		}
-
-		secondaryRanges = append(secondaryRanges, &secondaryRange)
-	}
-	return secondaryRanges
-}
-
-func flattenSecondaryRanges(secondaryRanges []*compute.SubnetworkSecondaryRange) []map[string]interface{} {
-	secondaryRangesSchema := make([]map[string]interface{}, 0, len(secondaryRanges))
-	for _, secondaryRange := range secondaryRanges {
-		data := map[string]interface{}{
-			"range_name":    secondaryRange.RangeName,
-			"ip_cidr_range": secondaryRange.IpCidrRange,
-		}
-
-		secondaryRangesSchema = append(secondaryRangesSchema, data)
-	}
-	return secondaryRangesSchema
 }
