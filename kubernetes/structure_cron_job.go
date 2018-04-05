@@ -109,9 +109,3 @@ func expandJobTemplate(in []interface{}) (batchv2.JobTemplateSpec, error) {
 
 	return obj, nil
 }
-
-func patchCronJobSpec(pathPrefix, prefix string, d *schema.ResourceData) (PatchOperations, error) {
-	ops := make([]PatchOperation, 0)
-
-	return ops, nil
-}

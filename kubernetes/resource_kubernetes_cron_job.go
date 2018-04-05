@@ -78,11 +78,15 @@ func resourceKubernetesCronJobUpdate(d *schema.ResourceData, meta interface{}) e
 	ops := patchMetadata("metadata.0.", "/metadata/", d)
 
 	if d.HasChange("spec") {
-		specOps, err := patchCronJobSpec("/spec", "spec.0.", d)
+		spec, err := expandCronJobSpec(d.Get("spec").([]interface{}))
 		if err != nil {
 			return err
 		}
-		ops = append(ops, specOps...)
+
+		ops = append(ops, &ReplaceOperation{
+			Path:  "/spec",
+			Value: spec,
+		})
 	}
 
 	data, err := ops.MarshalJSON()
