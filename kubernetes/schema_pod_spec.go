@@ -174,6 +174,43 @@ func podSpecFields(isUpdatable bool) map[string]*schema.Schema {
 			ValidateFunc: validateTerminationGracePeriodSeconds,
 			Description:  "Optional duration in seconds the pod needs to terminate gracefully. May be decreased in delete request. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period will be used instead. The grace period is the duration in seconds after the processes running in the pod are sent a termination signal and the time when the processes are forcibly halted with a kill signal. Set this value longer than the expected cleanup time for your process.",
 		},
+		"toleration": {
+			Type:        schema.TypeList,
+			Description: "Tolerations is an optional list of node tolerations controlling where pod can be placed",
+			Optional:    true,
+			Elem: &schema.Resource{
+				Schema: map[string]*schema.Schema{
+					"key": {
+						Type:        schema.TypeString,
+						Description: "Key for toleration effect",
+						Optional:    true,
+					},
+					"value": {
+						Type:        schema.TypeString,
+						Description: "Value for key",
+						Optional:    true,
+					},
+					"operator": {
+						Type:         schema.TypeString,
+						ValidateFunc: validateAttributeValueIsIn([]string{"Exists", "Equal"}),
+						Description:  "Type of check for toleration type",
+						Optional:     true,
+					},
+					"effect": {
+						Type:         schema.TypeString,
+						ValidateFunc: validateAttributeValueIsIn([]string{"NoSchedule", "PreferNoSchedule", "NoExecute"}),
+						Description:  "Toleration effect",
+						Optional:     true,
+					},
+					"toleration_seconds": {
+						Type:         schema.TypeInt,
+						ValidateFunc: validatePositiveInteger,
+						Description:  "Time allowance before pod is evicted when toleration is in effect",
+						Optional:     true,
+					},
+				},
+			},
+		},
 
 		"volume": {
 			Type:        schema.TypeList,
