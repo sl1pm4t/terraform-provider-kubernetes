@@ -113,6 +113,11 @@ func resourcesField() map[string]*schema.Schema {
 						ValidateFunc:     validateResourceQuantity,
 						DiffSuppressFunc: suppressEquivalentResourceQuantity,
 					},
+					"nvidia_gpu": {
+						Type:     schema.TypeInt,
+						Optional: true,
+						Computed: true,
+					},
 				},
 			},
 		},
@@ -136,6 +141,11 @@ func resourcesField() map[string]*schema.Schema {
 						Computed:         true,
 						ValidateFunc:     validateResourceQuantity,
 						DiffSuppressFunc: suppressEquivalentResourceQuantity,
+					},
+					"nvidia_gpu": {
+						Type:     schema.TypeInt,
+						Optional: true,
+						Computed: true,
 					},
 				},
 			},

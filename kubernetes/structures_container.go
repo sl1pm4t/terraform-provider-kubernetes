@@ -939,6 +939,9 @@ func expandContainerResourceRequirements(l []interface{}) (v1.ResourceRequiremen
 			if p["memory"] == "" {
 				delete(p, "memory")
 			}
+			if p["nvidia_gpu"] == "" {
+				delete(p, "nvidia.com/gpu")
+			}
 			return expandMapToResourceList(p)
 		}
 		return nil, nil

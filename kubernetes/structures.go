@@ -222,7 +222,11 @@ func base64EncodeStringMap(m map[string]interface{}) map[string]interface{} {
 func flattenResourceList(l api.ResourceList) map[string]string {
 	m := make(map[string]string)
 	for k, v := range l {
-		m[string(k)] = v.String()
+		resKey := string(k)
+		if resKey == "nvidia.com/gpu" {
+			resKey = "nvidia_gpu"
+		}
+		m[resKey] = v.String()
 	}
 	return m
 }
@@ -244,6 +248,10 @@ func expandMapToResourceList(m map[string]interface{}) (api.ResourceList, error)
 			}
 		} else {
 			return out, fmt.Errorf("Unexpected value type: %#v", origValue)
+		}
+
+		if key == "nvidia_gpu" {
+			key = "nvidia.com/gpu"
 		}
 
 		out[key] = value

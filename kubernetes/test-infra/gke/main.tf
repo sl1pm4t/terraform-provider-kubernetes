@@ -29,12 +29,18 @@ variable gcp_subnetwork {
   default = "default"
 }
 
+variable enable_gpu {
+  default = false
+}
+
 # See https://cloud.google.com/container-engine/supported-versions
 variable "kubernetes_version" {
   description = <<EOF
 The GKE Kubernetes version.
-EXAMPLE:
+EXAMPLES:
+  '1.8'
   '1.9'
+  '1.10'
   '1.9.6-gke.1'.
 
 See https://cloud.google.com/container-engine/supported-versions
@@ -44,7 +50,7 @@ EOF
 resource "google_container_cluster" "primary" {
   name               = "tf-acc-test-${random_id.cluster_name.hex}"
   zone               = "${data.google_compute_zones.available.names[0]}"
-  initial_node_count = 2
+  initial_node_count = 1
   node_version       = "${var.kubernetes_version}"
   min_master_version = "${var.kubernetes_version}"
 
@@ -52,7 +58,7 @@ resource "google_container_cluster" "primary" {
   subnetwork = "${var.gcp_subnetwork}"
 
   additional_zones = [
-    "${data.google_compute_zones.available.names[1]}",
+    "${data.google_compute_zones.available.names[2]}",
   ]
 
   master_auth {
@@ -69,6 +75,120 @@ resource "google_container_cluster" "primary" {
       "https://www.googleapis.com/auth/logging.write",
       "https://www.googleapis.com/auth/monitoring",
     ]
+
+    guest_accelerator {
+      type  = "nvidia-tesla-k80"
+      count = "${var.enable_gpu ? 1 : 0}"
+    }
+  }
+}
+
+resource kubernetes_daemonset nvidia_driver {
+  count = "${var.enable_gpu ? 1 : 0 }"
+
+  metadata {
+    name      = "nvidia-driver-installer"
+    namespace = "kube-system"
+
+    labels {
+      "k8s-app" = "nvidia-driver-installer"
+    }
+  }
+
+  spec {
+    selector {
+      name      = "nvidia-driver-installer"
+      "k8s-app" = "nvidia-driver-installer"
+    }
+
+    template {
+      metadata {
+        labels {
+          name      = "nvidia-driver-installer"
+          "k8s-app" = "nvidia-driver-installer"
+        }
+      }
+
+      spec {
+        host_network = "true"
+        host_pid     = "true"
+
+        volume {
+          name = "dev"
+
+          host_path {
+            path = "/dev"
+          }
+        }
+
+        volume {
+          name = "nvidia-install-dir-host"
+
+          host_path {
+            path = "/home/kubernetes/bin/nvidia"
+          }
+        }
+
+        volume {
+          name = "root-mount"
+
+          host_path {
+            path = "/"
+          }
+        }
+
+        init_container {
+          image             = "cos-nvidia-installer:fixed"
+          image_pull_policy = "Never"
+          name              = "nvidia-driver-installer"
+
+          resources {
+            requests {
+              cpu = "0.15"
+            }
+          }
+
+          security_context {
+            privileged = "true"
+          }
+
+          env {
+            name  = "NVIDIA_INSTALL_DIR_HOST"
+            value = "/home/kubernetes/bin/nvidia"
+          }
+
+          env {
+            name  = "NVIDIA_INSTALL_DIR_CONTAINER"
+            value = "/usr/local/nvidia"
+          }
+
+          env {
+            name  = "ROOT_MOUNT_DIR"
+            value = "/root"
+          }
+
+          volume_mount {
+            name       = "nvidia-install-dir-host"
+            mount_path = "/usr/local/nvidia"
+          }
+
+          volume_mount {
+            name       = "dev"
+            mount_path = "/dev"
+          }
+
+          volume_mount {
+            name       = "root-mount"
+            mount_path = "/root"
+          }
+        }
+
+        container {
+          image = "gcr.io/google-containers/pause:2.0"
+          name  = "pause"
+        }
+      }
+    }
   }
 }
 
