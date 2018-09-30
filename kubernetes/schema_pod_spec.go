@@ -22,24 +22,29 @@ func podTemplateSpecFields(isUpdatable bool) map[string]*schema.Schema {
 
 func nodeSelectorTermFields() map[string]*schema.Schema {
 	return map[string]*schema.Schema{
-		"match_expression": {
+		"match_expressions": {
 			Type:        schema.TypeList,
 			Description: "A list of node selector requirements. The requirements are ANDed.",
+			Required:    true,
 			Elem: &schema.Resource{
 				Schema: map[string]*schema.Schema{
 					"key": {
 						Type:        schema.TypeString,
 						Description: "The label key that the selector applies to.",
+						Required:    true,
 					},
 					"operator": {
 						Type:         schema.TypeString,
 						Description:  "Represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists, DoesNotExist. Gt, and Lt.",
 						ValidateFunc: validateAttributeValueIsIn([]string{"In", "NotIn", "Exists", "DoesNotExist", "Gt", "Lt"}),
+						Required:     true,
 					},
-					"value": {
-						Type:        schema.TypeList,
+					"values": {
+						Type:        schema.TypeSet,
 						Description: "An array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. If the operator is Gt or Lt, the values array must have a single element, which will be interpreted as an integer. This array is replaced during a strategic merge patch.",
-						Elem:        schema.TypeString,
+						Elem:        &schema.Schema{Type: schema.TypeString},
+						Set:         schema.HashString,
+						Optional:    true,
 					},
 				},
 			},
@@ -53,17 +58,22 @@ func podAffinityTermFields() map[string]*schema.Schema {
 			Type:        schema.TypeList,
 			Description: "The scheduler will prefer to schedule pods to nodes that satisfy the affinity expressions specified by this field, but it may choose a node that violates one or more of the expressions. The node that is most preferred is the one with the greatest sum of weights, i.e. for each node that meets all of the scheduling requirements (resource request, requiredDuringScheduling affinity expressions, etc.), compute a sum by iterating through the elements of this field and adding \"weight\" to the sum if the node has pods which matches the corresponding podAffinityTerm; the node(s) with the highest sum are the most preferred.",
 			MaxItems:    1,
-			Elem:        labelSelectorFields(),
+			Required:    true,
+			Elem: &schema.Resource{
+				Schema: labelSelectorFields(),
+			},
 		},
 		"namespace": {
-			Type:        schema.TypeList,
+			Type:        schema.TypeSet,
 			Description: "Which namespaces the labelSelector applies to (matches against); null or empty list means \"this pod's namespace\"",
 			Optional:    true,
 			MaxItems:    1,
-			Elem:        schema.TypeString,
+			Elem:        &schema.Schema{Type: schema.TypeString},
+			Set:         schema.HashString,
 		},
 		"topology_key": {
 			Type:        schema.TypeString,
+			Required:    true,
 			Description: "This pod should be co-located (affinity) or not co-located (anti-affinity) with the pods matching the labelSelector in the specified namespaces, where co-located is defined as running on a node whose value of the label with key topologyKey matches that of any node on which any of the selected pods is running. Empty topologyKey is not allowed.",
 		},
 	}
@@ -79,13 +89,16 @@ func podAffinityFields() map[string]*schema.Schema {
 				Schema: map[string]*schema.Schema{
 					"pod_affinity_term": {
 						Type:        schema.TypeList,
-						Optional:    true,
+						Required:    true,
 						Description: "A pod affinity term, associated with the corresponding weight.",
 						MaxItems:    1,
-						Elem:        podAffinityTermFields(),
+						Elem: &schema.Resource{
+							Schema: podAffinityTermFields(),
+						},
 					},
 					"weight": {
 						Type:        schema.TypeInt,
+						Required:    true,
 						Description: "weight associated with matching the corresponding podAffinityTerm, in the range 1-100.",
 					},
 				},
@@ -95,7 +108,9 @@ func podAffinityFields() map[string]*schema.Schema {
 			Type:        schema.TypeList,
 			Optional:    true,
 			Description: "If the affinity requirements specified by this field are not met at scheduling time, the pod will not be scheduled onto the node. If the affinity requirements specified by this field cease to be met at some point during pod execution (e.g. due to a pod label update), the system may or may not try to eventually evict the pod from its node. When there are multiple elements, the lists of nodes corresponding to each podAffinityTerm are intersected, i.e. all terms must be satisfied.",
-			Elem:        podAffinityTermFields(),
+			Elem: &schema.Resource{
+				Schema: podAffinityTermFields(),
+			},
 		},
 	}
 }
@@ -139,6 +154,7 @@ func podSpecFields(isUpdatable bool) map[string]*schema.Schema {
 											},
 											"weight": {
 												Type:        schema.TypeInt,
+												Required:    true,
 												Description: "Weight associated with matching the corresponding nodeSelectorTerm, in the range 1-100.",
 											},
 										},
@@ -153,6 +169,7 @@ func podSpecFields(isUpdatable bool) map[string]*schema.Schema {
 											"node_selector_term": {
 												Type:        schema.TypeList,
 												Description: "A list of node selector terms. The terms are ORed.",
+												Required:    true,
 												Elem: &schema.Resource{
 													Schema: nodeSelectorTermFields(),
 												},

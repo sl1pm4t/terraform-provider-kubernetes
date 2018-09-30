@@ -170,7 +170,7 @@ func flattenNodeSelectorTerms(terms []v1.NodeSelectorTerm) []interface{} {
 		obj := map[string]interface{}{}
 
 		if len(t.MatchExpressions) > 0 {
-			obj["match_expression"] = flattenNodeSelectorRequirements(t.MatchExpressions)
+			obj["match_expressions"] = flattenNodeSelectorRequirements(t.MatchExpressions)
 		}
 
 		att[i] = obj
@@ -183,7 +183,7 @@ func flattenNodeSelectorTerm(in v1.NodeSelectorTerm) []interface{} {
 	att := make(map[string]interface{})
 
 	if len(in.MatchExpressions) > 0 {
-		att["match_expression"] = flattenNodeSelectorRequirements(in.MatchExpressions)
+		att["match_expressions"] = flattenNodeSelectorRequirements(in.MatchExpressions)
 	}
 
 	if len(att) > 0 {
@@ -207,7 +207,7 @@ func flattenNodeSelectorRequirements(requirements []v1.NodeSelectorRequirement) 
 		}
 
 		if len(r.Values) > 0 {
-			obj["value"] = r.Values
+			obj["values"] = r.Values
 		}
 
 		att[i] = obj
@@ -568,7 +568,7 @@ func expandPodSpec(p []interface{}) (v1.PodSpec, error) {
 	}
 
 	if v, ok := in["affinity"].([]interface{}); ok && len(v) > 0 {
-
+		obj.Affinity = expandAffinity(v)
 	}
 
 	if v, ok := in["container"].([]interface{}); ok && len(v) > 0 {
@@ -739,8 +739,8 @@ func expandPreferredSchedulingTerms(in []interface{}) []v1.PreferredSchedulingTe
 			terms[i].Preference = expandNodeSelectorTerm(v)
 		}
 
-		if v, ok := t["weight"].(int32); ok {
-			terms[i].Weight = v
+		if v, ok := t["weight"].(int); ok {
+			terms[i].Weight = int32(v)
 		}
 	}
 
@@ -787,7 +787,7 @@ func expandNodeSelectorTerm(l []interface{}) v1.NodeSelectorTerm {
 func expandNodeSelectorTermMap(in map[string]interface{}) v1.NodeSelectorTerm {
 	obj := v1.NodeSelectorTerm{}
 
-	if v, ok := in["match_expression"].([]interface{}); ok && len(v) > 0 {
+	if v, ok := in["match_expressions"].([]interface{}); ok && len(v) > 0 {
 		obj.MatchExpressions = expandNodeSelectorRequirements(v)
 	}
 
@@ -868,8 +868,8 @@ func expandWeightedPodAffinityTerms(in []interface{}) []v1.WeightedPodAffinityTe
 			terms[i].PodAffinityTerm = expandPodAffinityTerm(v)
 		}
 
-		if v, ok := t["weight"].(int32); ok {
-			terms[i].Weight = v
+		if v, ok := t["weight"].(int); ok {
+			terms[i].Weight = int32(v)
 		}
 	}
 

@@ -321,29 +321,29 @@ func TestAccKubernetesPod_with_affinity(t *testing.T) {
 							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.#", "1"),
 							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.#", "2"),
 							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.0.preference.#", "1"),
-							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.0.preference.0.match_expression.#", "2"),
+							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.0.preference.0.match_expressions.#", "2"),
 						},
-						checkAffinityMatchExpressionFoo1("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.0.preference.0.match_expression.0"),
-						checkAffinityMatchExpressionFoo2("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.0.preference.0.match_expression.1"),
+						checkAffinityMatchExpressionFoo1("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.0.preference.0.match_expressions.0"),
+						checkAffinityMatchExpressionFoo2("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.0.preference.0.match_expressions.1"),
 						[]resource.TestCheckFunc{
 							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.0.preference.0.weight", "100"),
 							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.1.preference.#", "1"),
-							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.1.preference.0.match_expression.#", "1"),
+							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.1.preference.0.match_expressions.#", "1"),
 						},
-						checkAffinityMatchExpressionCat1("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.1.preference.0.match_expression.0"),
+						checkAffinityMatchExpressionCat1("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.1.preference.0.match_expressions.0"),
 						[]resource.TestCheckFunc{
 							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.preferred_during_scheduling_ignored_during_execution.1.preference.0.weight", "30"),
 
 							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.#", "1"),
 							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.#", "2"),
-							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.0.match_expression.#", "2"),
+							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.0.match_expressions.#", "2"),
 						},
-						checkAffinityMatchExpressionFoo1("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.0.match_expression.0"),
-						checkAffinityMatchExpressionFoo2("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.0.match_expression.1"),
+						checkAffinityMatchExpressionFoo1("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.0.match_expressions.0"),
+						checkAffinityMatchExpressionFoo2("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.0.match_expressions.1"),
 						[]resource.TestCheckFunc{
-							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.1.match_expression.#", "1"),
+							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.1.match_expressions.#", "1"),
 						},
-						checkAffinityMatchExpressionCat1("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.1.match_expression.0"),
+						checkAffinityMatchExpressionCat1("kubernetes_pod.test", "spec.0.affinity.0.node_affinity.0.required_during_scheduling_ignored_during_execution.0.node_selector_term.1.match_expressions.0"),
 
 						[]resource.TestCheckFunc{
 							resource.TestCheckResourceAttr("kubernetes_pod.test", "spec.0.affinity.0.pod_affinity.#", "1"),
@@ -362,9 +362,9 @@ func checkAffinityMatchExpressionFoo1(pod string, prefix string) []resource.Test
 	return []resource.TestCheckFunc{
 		resource.TestCheckResourceAttr(pod, prefix+".key", "foo1"),
 		resource.TestCheckResourceAttr(pod, prefix+".operator", "In"),
-		resource.TestCheckResourceAttr(pod, prefix+".value.#", "2"),
-		resource.TestCheckResourceAttr(pod, prefix+".value.0", "bar1"),
-		resource.TestCheckResourceAttr(pod, prefix+".value.1", "bar2"),
+		resource.TestCheckResourceAttr(pod, prefix+".values.#", "2"),
+		resource.TestCheckResourceAttr(pod, prefix+".values.0", "bar1"),
+		resource.TestCheckResourceAttr(pod, prefix+".values.1", "bar2"),
 	}
 }
 
@@ -372,8 +372,8 @@ func checkAffinityMatchExpressionFoo2(pod string, prefix string) []resource.Test
 	return []resource.TestCheckFunc{
 		resource.TestCheckResourceAttr(pod, prefix+".key", "foo2"),
 		resource.TestCheckResourceAttr(pod, prefix+".operator", "NotIn"),
-		resource.TestCheckResourceAttr(pod, prefix+".value.#", "1"),
-		resource.TestCheckResourceAttr(pod, prefix+".value.0", "baz1"),
+		resource.TestCheckResourceAttr(pod, prefix+".values.#", "1"),
+		resource.TestCheckResourceAttr(pod, prefix+".values.0", "baz1"),
 	}
 }
 
@@ -382,9 +382,9 @@ func checkAffinityMatchExpressionCat1(pod string, prefix string) []resource.Test
 		[]resource.TestCheckFunc{
 			resource.TestCheckResourceAttr(pod, prefix+".key", "cat1"),
 			resource.TestCheckResourceAttr(pod, prefix+".operator", "In"),
-			resource.TestCheckResourceAttr(pod, prefix+".value.#", "2"),
-			resource.TestCheckResourceAttr(pod, prefix+".value.0", "dog"),
-			resource.TestCheckResourceAttr(pod, prefix+".value.1", "bar2"),
+			resource.TestCheckResourceAttr(pod, prefix+".values.#", "2"),
+			resource.TestCheckResourceAttr(pod, prefix+".values.0", "dog"),
+			resource.TestCheckResourceAttr(pod, prefix+".values.1", "bar2"),
 		},
 	)
 }
@@ -395,8 +395,8 @@ func checkAffinityPodAffinityTermFoo(pod string, prefix string) []resource.TestC
 			resource.TestCheckResourceAttr(pod, prefix+".label_selector.#", "1"),
 			resource.TestCheckResourceAttr(pod, prefix+".label_selector.match_expression", "2"),
 		},
-		checkAffinityMatchExpressionFoo1(pod, prefix+".label_selector.match_expression.0"),
-		checkAffinityMatchExpressionFoo2(pod, prefix+".label_selector.match_expression.1"),
+		checkAffinityMatchExpressionFoo1(pod, prefix+".label_selector.match_expressions.0"),
+		checkAffinityMatchExpressionFoo2(pod, prefix+".label_selector.match_expressions.1"),
 		[]resource.TestCheckFunc{
 			resource.TestCheckResourceAttr(pod, prefix+".label_selector.namespace.#", "2"),
 			resource.TestCheckResourceAttr(pod, prefix+".label_selector.namespace.0", "ns1"),
@@ -412,7 +412,7 @@ func checkAffinityPodAffinityTermCat(pod string, prefix string) []resource.TestC
 			resource.TestCheckResourceAttr(pod, prefix+".label_selector.#", "1"),
 			resource.TestCheckResourceAttr(pod, prefix+".label_selector.match_expression", "1"),
 		},
-		checkAffinityMatchExpressionCat1("kubernetes_pod_test", prefix+".label_selector.match_expression.0"),
+		checkAffinityMatchExpressionCat1("kubernetes_pod_test", prefix+".label_selector.match_expressions.0"),
 		[]resource.TestCheckFunc{
 			resource.TestCheckResourceAttr(pod, prefix+".label_selector.namespace.#", "2"),
 			resource.TestCheckResourceAttr(pod, prefix+".label_selector.namespace.0", "ns4"),
@@ -750,47 +750,47 @@ resource "kubernetes_pod" "test" {
       node_affinity {
         preferred_during_scheduling_ignored_during_execution {
           preference {
-            match_expression {
+            match_expressions {
               key = "foo1"
               operator = "In"
-              value = [ "bar1", "bar2" ]                
+              values = [ "bar1", "bar2" ]                
             }
-            match_expression {
+            match_expressions {
               key = "foo2"
               operator = "NotIn"
-              value = [ "baz1" ]                
+              values = [ "baz1" ]                
             }
           }
           weight = 100
         }
         preferred_during_scheduling_ignored_during_execution {
           preference {
-            match_expression {
+            match_expressions {
               key = "cat1"
               operator = "In"
-              value = [ "dog", "bar2" ]                
+              values = [ "dog", "bar2" ]                
             }
           }
           weight = 30
         }
         required_during_scheduling_ignored_during_execution {
           node_selector_term {
-            match_expression {
+            match_expressions {
               key = "foo1"
               operator = "In"
-              value = [ "bar1", "bar2" ]                
+              values = [ "bar1", "bar2" ]                
             }
-            match_expression {
+            match_expressions {
               key = "foo2"
               operator = "NotIn"
-              value = [ "baz1" ]                
+              values = [ "baz1" ]                
             }
           }
           node_selector_term {
-            match_expression {
+            match_expressions {
               key = "cat1"
               operator = "In"
-              value = [ "dog", "bar2" ]                
+              values = [ "dog", "bar2" ]                
             }
           }
         } 
@@ -799,15 +799,15 @@ resource "kubernetes_pod" "test" {
         preferred_during_scheduling_ignored_during_execution {
           pod_affinity_term {
             label_selector {
-              match_expression {
+              match_expressions {
                 key = "foo1"
                 operator = "In"
-                value = [ "bar1", "bar2" ]                
+                values = [ "bar1", "bar2" ]                
               }
-              match_expression {
+              match_expressions {
                 key = "foo2"
                 operator = "NotIn"
-                value = [ "baz1" ]                
+                values = [ "baz1" ]                
               }
             }
             namespace = [ "ns1", "ns2" ]
@@ -818,10 +818,10 @@ resource "kubernetes_pod" "test" {
         preferred_during_scheduling_ignored_during_execution {
           pod_affinity_term {
             label_selector {
-              match_expression {
+              match_expressions {
                 key = "cat1"
                 operator = "In"
-                value = [ "dog", "bar2" ]                    
+                values = [ "dog", "bar2" ]                    
               }
             }
             namespace = [ "ns4", "ns7" ]
@@ -832,15 +832,15 @@ resource "kubernetes_pod" "test" {
         required_during_scheduling_ignored_during_execution {
           pod_affinity_term {
             label_selector {
-              match_expression {
+              match_expressions {
                 key = "foo1"
                 operator = "In"
-                value = [ "bar1", "bar2" ]                
+                values = [ "bar1", "bar2" ]                
               }
-              match_expression {
+              match_expressions {
                 key = "foo2"
                 operator = "NotIn"
-                value = [ "baz1" ]                
+                values = [ "baz1" ]                
               }
             }
             namespace = [ "ns1", "ns2" ]
@@ -848,10 +848,10 @@ resource "kubernetes_pod" "test" {
           }
           pod_affinity_term {
             label_selector {
-              match_expression {
+              match_expressions {
                 key = "cat1"
                 operator = "In"
-                value = [ "dog", "bar2" ]                
+                values = [ "dog", "bar2" ]                
               }
             }
             namespace = [ "ns4", "ns7" ]
@@ -863,15 +863,15 @@ resource "kubernetes_pod" "test" {
         preferred_during_scheduling_ignored_during_execution {
           pod_affinity_term {
             label_selector {
-              match_expression {
+              match_expressions {
                 key = "foo1"
                 operator = "In"
-                value = [ "bar1", "bar2" ]                
+                values = [ "bar1", "bar2" ]                
               }
-              match_expression {
+              match_expressions {
                 key = "foo2"
                 operator = "NotIn"
-                value = [ "baz1" ]                
+                values = [ "baz1" ]                
               }
             }
             namespace = [ "ns1", "ns2" ]
@@ -882,10 +882,10 @@ resource "kubernetes_pod" "test" {
         preferred_during_scheduling_ignored_during_execution {
           pod_affinity_term {
             label_selector {
-              match_expression {
+              match_expressions {
                 key = "cat1"
                 operator = "In"
-                value = [ "dog", "bar2" ]              
+                values = [ "dog", "bar2" ]              
               }
             }
             namespace = [ "ns4", "ns7" ]
@@ -896,15 +896,15 @@ resource "kubernetes_pod" "test" {
         required_during_scheduling_ignored_during_execution {
           pod_affinity_term {
             label_selector {
-              match_expression {
+              match_expressions {
                 key = "foo1"
                 operator = "In"
-                value = [ "bar1", "bar2" ]                
+                values = [ "bar1", "bar2" ]                
               }
-              match_expression {
+              match_expressions {
                 key = "foo2"
                 operator = "NotIn"
-                value = [ "baz1" ]                
+                values = [ "baz1" ]                
               }
             }
             namespace = [ "ns1", "ns2" ]
@@ -912,10 +912,10 @@ resource "kubernetes_pod" "test" {
           }
           pod_affinity_term {
             label_selector {
-              match_expression {                
+              match_expressions {                
                 key = "cat1"
                 operator = "In"
-                value = [ "dog", "bar2" ]            
+                values = [ "dog", "bar2" ]            
               }
             }
             namespace = [ "ns4", "ns7" ]
