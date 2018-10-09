@@ -16,6 +16,11 @@ func flattenPodSpec(in v1.PodSpec) ([]interface{}, error) {
 	if in.ActiveDeadlineSeconds != nil {
 		att["active_deadline_seconds"] = *in.ActiveDeadlineSeconds
 	}
+
+	if in.Affinity != nil {
+		att["affinity"] = flattenAffinity(in.Affinity)
+	}
+
 	containers, err := flattenContainers(in.Containers)
 	if err != nil {
 		return nil, err
@@ -99,6 +104,208 @@ func flattenPodTemplateSpec(in v1.PodTemplateSpec, d *schema.ResourceData) ([]in
 	att["spec"] = podSpec
 
 	return []interface{}{att}, nil
+}
+
+func flattenAffinity(in *v1.Affinity) []interface{} {
+	att := make(map[string]interface{})
+
+	if in.NodeAffinity != nil {
+		att["node_affinity"] = flattenNodeAffinity(in.NodeAffinity)
+	}
+
+	if in.PodAffinity != nil {
+		att["pod_affinity"] = flattenPodAffinity(in.PodAffinity)
+	}
+
+	if in.PodAntiAffinity != nil {
+		att["pod_anti_affinity"] = flattenPodAntiAffinity(in.PodAntiAffinity)
+	}
+
+	if len(att) > 0 {
+		return []interface{}{att}
+	}
+	return []interface{}{}
+}
+
+func flattenNodeAffinity(in *v1.NodeAffinity) []interface{} {
+	att := make(map[string]interface{})
+
+	if len(in.PreferredDuringSchedulingIgnoredDuringExecution) > 0 {
+		att["preferred_during_scheduling_ignored_during_execution"] = flattenPreferredSchedulingTerms(in.PreferredDuringSchedulingIgnoredDuringExecution)
+	}
+
+	if in.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+		att["required_during_scheduling_ignored_during_execution"] = flattenNodeSelector(in.RequiredDuringSchedulingIgnoredDuringExecution)
+	}
+
+	if len(att) > 0 {
+		return []interface{}{att}
+	}
+	return []interface{}{}
+}
+
+func flattenPreferredSchedulingTerms(terms []v1.PreferredSchedulingTerm) []interface{} {
+	att := make([]interface{}, len(terms))
+
+	for i, t := range terms {
+		obj := map[string]interface{}{}
+
+		obj["preference"] = flattenNodeSelectorTerm(t.Preference)
+
+		obj["weight"] = t.Weight
+
+		att[i] = obj
+	}
+
+	return att
+}
+
+func flattenNodeSelector(in *v1.NodeSelector) []interface{} {
+	att := make(map[string]interface{})
+
+	if len(in.NodeSelectorTerms) > 0 {
+		att["node_selector_term"] = flattenNodeSelectorTerms(in.NodeSelectorTerms)
+	}
+
+	if len(att) > 0 {
+		return []interface{}{att}
+	}
+	return []interface{}{}
+}
+
+func flattenNodeSelectorTerms(terms []v1.NodeSelectorTerm) []interface{} {
+	att := make([]interface{}, len(terms))
+
+	for i, t := range terms {
+		obj := map[string]interface{}{}
+
+		if len(t.MatchExpressions) > 0 {
+			obj["match_expressions"] = flattenNodeSelectorRequirements(t.MatchExpressions)
+		}
+
+		att[i] = obj
+	}
+
+	return att
+}
+
+func flattenNodeSelectorTerm(in v1.NodeSelectorTerm) []interface{} {
+	att := make(map[string]interface{})
+
+	if len(in.MatchExpressions) > 0 {
+		att["match_expressions"] = flattenNodeSelectorRequirements(in.MatchExpressions)
+	}
+
+	if len(att) > 0 {
+		return []interface{}{att}
+	}
+	return []interface{}{}
+}
+
+func flattenNodeSelectorRequirements(requirements []v1.NodeSelectorRequirement) []interface{} {
+	att := make([]interface{}, len(requirements))
+
+	for i, r := range requirements {
+		obj := map[string]interface{}{}
+
+		if r.Key != "" {
+			obj["key"] = r.Key
+		}
+
+		if r.Operator != "" {
+			obj["operator"] = r.Operator
+		}
+
+		if len(r.Values) > 0 {
+			obj["values"] = r.Values
+		}
+
+		att[i] = obj
+	}
+
+	return att
+}
+
+func flattenPodAffinity(in *v1.PodAffinity) []interface{} {
+	att := make(map[string]interface{})
+
+	if len(in.PreferredDuringSchedulingIgnoredDuringExecution) > 0 {
+		att["preferred_during_scheduling_ignored_during_execution"] = flattenWeightedPodAffinityTerms(in.PreferredDuringSchedulingIgnoredDuringExecution)
+	}
+
+	if len(in.RequiredDuringSchedulingIgnoredDuringExecution) > 0 {
+		att["required_during_scheduling_ignored_during_execution"] = flattenPodAffinityTerms(in.RequiredDuringSchedulingIgnoredDuringExecution)
+	}
+
+	if len(att) > 0 {
+		return []interface{}{att}
+	}
+	return []interface{}{}
+}
+
+func flattenPodAntiAffinity(in *v1.PodAntiAffinity) []interface{} {
+	att := make(map[string]interface{})
+
+	if len(in.PreferredDuringSchedulingIgnoredDuringExecution) > 0 {
+		att["preferred_during_scheduling_ignored_during_execution"] = flattenWeightedPodAffinityTerms(in.PreferredDuringSchedulingIgnoredDuringExecution)
+	}
+
+	if len(in.RequiredDuringSchedulingIgnoredDuringExecution) > 0 {
+		att["required_during_scheduling_ignored_during_execution"] = flattenPodAffinityTerms(in.RequiredDuringSchedulingIgnoredDuringExecution)
+	}
+
+	if len(att) > 0 {
+		return []interface{}{att}
+	}
+	return []interface{}{}
+}
+
+func flattenWeightedPodAffinityTerms(terms []v1.WeightedPodAffinityTerm) []interface{} {
+	att := make([]interface{}, len(terms))
+
+	for i, t := range terms {
+		obj := map[string]interface{}{}
+
+		obj["pod_affinity_term"] = flattenPodAffinityTerm(t.PodAffinityTerm)
+
+		obj["weight"] = t.Weight
+
+		att[i] = obj
+	}
+
+	return att
+}
+
+func flattenPodAffinityTerms(terms []v1.PodAffinityTerm) []interface{} {
+	att := make([]interface{}, len(terms))
+
+	for i, t := range terms {
+		obj := flattenPodAffinityTerm(t)
+		att[i] = obj
+	}
+
+	return att
+}
+
+func flattenPodAffinityTerm(in v1.PodAffinityTerm) []interface{} {
+	att := make(map[string]interface{})
+
+	if in.LabelSelector != nil {
+		att["label_selector"] = flattenLabelSelector(in.LabelSelector)
+	}
+
+	if len(in.Namespaces) > 0 {
+		att["namespace"] = in.Namespaces
+	}
+
+	if in.TopologyKey != "" {
+		att["topology_key"] = in.TopologyKey
+	}
+
+	if len(att) > 0 {
+		return []interface{}{att}
+	}
+	return []interface{}{}
 }
 
 func flattenPodSecurityContext(in *v1.PodSecurityContext) []interface{} {
@@ -394,6 +601,10 @@ func expandPodSpec(p []interface{}) (v1.PodSpec, error) {
 		obj.ActiveDeadlineSeconds = ptrToInt64(int64(v))
 	}
 
+	if v, ok := in["affinity"].([]interface{}); ok && len(v) > 0 {
+		obj.Affinity = expandAffinity(v)
+	}
+
 	if v, ok := in["container"].([]interface{}); ok && len(v) > 0 {
 		cs, err := expandContainers(v)
 		if err != nil {
@@ -502,6 +713,28 @@ func expandPodSpec(p []interface{}) (v1.PodSpec, error) {
 	return obj, nil
 }
 
+func expandAffinity(l []interface{}) *v1.Affinity {
+	if len(l) == 0 || l[0] == nil {
+		return &v1.Affinity{}
+	}
+	in := l[0].(map[string]interface{})
+	obj := &v1.Affinity{}
+
+	if v, ok := in["node_affinity"].([]interface{}); ok && len(v) > 0 {
+		obj.NodeAffinity = expandNodeAffinity(v)
+	}
+
+	if v, ok := in["pod_affinity"].([]interface{}); ok && len(v) > 0 {
+		obj.PodAffinity = expandPodAffinity(v)
+	}
+
+	if v, ok := in["pod_anti_affinity"].([]interface{}); ok && len(v) > 0 {
+		obj.PodAntiAffinity = expandPodAntiAffinity(v)
+	}
+
+	return obj
+}
+
 func expandPodSecurityContext(l []interface{}) *v1.PodSecurityContext {
 	if len(l) == 0 || l[0] == nil {
 		return &v1.PodSecurityContext{}
@@ -523,6 +756,214 @@ func expandPodSecurityContext(l []interface{}) *v1.PodSecurityContext {
 
 	if v, ok := in["se_linux_options"].([]interface{}); ok && len(v) > 0 {
 		obj.SELinuxOptions = expandSeLinuxOptions(v)
+	}
+
+	return obj
+}
+
+func expandNodeAffinity(l []interface{}) *v1.NodeAffinity {
+	if len(l) == 0 || l[0] == nil {
+		return &v1.NodeAffinity{}
+	}
+	in := l[0].(map[string]interface{})
+	obj := &v1.NodeAffinity{}
+
+	if v, ok := in["preferred_during_scheduling_ignored_during_execution"].([]interface{}); ok && len(v) > 0 {
+		obj.PreferredDuringSchedulingIgnoredDuringExecution = expandPreferredSchedulingTerms(v)
+	}
+
+	if v, ok := in["required_during_scheduling_ignored_during_execution"].([]interface{}); ok && len(v) > 0 {
+		obj.RequiredDuringSchedulingIgnoredDuringExecution = expandNodeSelector(v)
+	}
+
+	return obj
+}
+
+func expandPreferredSchedulingTerms(in []interface{}) []v1.PreferredSchedulingTerm {
+	if len(in) == 0 {
+		return []v1.PreferredSchedulingTerm{}
+	}
+
+	terms := make([]v1.PreferredSchedulingTerm, len(in))
+	for i, c := range in {
+		t := c.(map[string]interface{})
+
+		if v, ok := t["preference"].([]interface{}); ok && len(v) > 0 {
+			terms[i].Preference = expandNodeSelectorTerm(v)
+		}
+
+		if v, ok := t["weight"].(int); ok {
+			terms[i].Weight = int32(v)
+		}
+	}
+
+	return terms
+}
+
+func expandNodeSelector(l []interface{}) *v1.NodeSelector {
+	if len(l) == 0 || l[0] == nil {
+		return &v1.NodeSelector{}
+	}
+
+	in := l[0].(map[string]interface{})
+	obj := &v1.NodeSelector{}
+
+	if v, ok := in["node_selector_term"].([]interface{}); ok && len(v) > 0 {
+		obj.NodeSelectorTerms = expandNodeSelectorTerms(v)
+	}
+
+	return obj
+}
+
+func expandNodeSelectorTerms(in []interface{}) []v1.NodeSelectorTerm {
+	if len(in) == 0 {
+		return []v1.NodeSelectorTerm{}
+	}
+
+	terms := make([]v1.NodeSelectorTerm, len(in))
+	for i, c := range in {
+		t := c.(map[string]interface{})
+		terms[i] = expandNodeSelectorTermMap(t)
+	}
+
+	return terms
+}
+
+func expandNodeSelectorTerm(l []interface{}) v1.NodeSelectorTerm {
+	if len(l) == 0 || l[0] == nil {
+		return v1.NodeSelectorTerm{}
+	}
+	in := l[0].(map[string]interface{})
+	return expandNodeSelectorTermMap(in)
+}
+
+func expandNodeSelectorTermMap(in map[string]interface{}) v1.NodeSelectorTerm {
+	obj := v1.NodeSelectorTerm{}
+
+	if v, ok := in["match_expressions"].([]interface{}); ok && len(v) > 0 {
+		obj.MatchExpressions = expandNodeSelectorRequirements(v)
+	}
+
+	return obj
+}
+
+func expandNodeSelectorRequirements(in []interface{}) []v1.NodeSelectorRequirement {
+	if len(in) == 0 {
+		return []v1.NodeSelectorRequirement{}
+	}
+
+	terms := make([]v1.NodeSelectorRequirement, len(in))
+	for i, c := range in {
+		r := c.(map[string]interface{})
+
+		if v, ok := r["key"].(string); ok {
+			terms[i].Key = v
+		}
+
+		if v, ok := r["operator"].(v1.NodeSelectorOperator); ok {
+			terms[i].Operator = v
+		}
+
+		if v, ok := r["operator"].([]string); ok && len(v) > 0 {
+			terms[i].Values = v
+		}
+	}
+
+	return terms
+}
+
+func expandPodAffinity(l []interface{}) *v1.PodAffinity {
+	if len(l) == 0 || l[0] == nil {
+		return &v1.PodAffinity{}
+	}
+	in := l[0].(map[string]interface{})
+	obj := &v1.PodAffinity{}
+
+	if v, ok := in["preferred_during_scheduling_ignored_during_execution"].([]interface{}); ok && len(v) > 0 {
+		obj.PreferredDuringSchedulingIgnoredDuringExecution = expandWeightedPodAffinityTerms(v)
+	}
+
+	if v, ok := in["required_during_scheduling_ignored_during_execution"].([]interface{}); ok && len(v) > 0 {
+		obj.RequiredDuringSchedulingIgnoredDuringExecution = expandPodAffinityTerms(v)
+	}
+
+	return obj
+}
+
+func expandPodAntiAffinity(l []interface{}) *v1.PodAntiAffinity {
+	if len(l) == 0 || l[0] == nil {
+		return &v1.PodAntiAffinity{}
+	}
+	in := l[0].(map[string]interface{})
+	obj := &v1.PodAntiAffinity{}
+
+	if v, ok := in["preferred_during_scheduling_ignored_during_execution"].([]interface{}); ok && len(v) > 0 {
+		obj.PreferredDuringSchedulingIgnoredDuringExecution = expandWeightedPodAffinityTerms(v)
+	}
+
+	if v, ok := in["required_during_scheduling_ignored_during_execution"].([]interface{}); ok && len(v) > 0 {
+		obj.RequiredDuringSchedulingIgnoredDuringExecution = expandPodAffinityTerms(v)
+	}
+
+	return obj
+}
+
+func expandWeightedPodAffinityTerms(in []interface{}) []v1.WeightedPodAffinityTerm {
+	if len(in) == 0 {
+		return []v1.WeightedPodAffinityTerm{}
+	}
+
+	terms := make([]v1.WeightedPodAffinityTerm, len(in))
+	for i, c := range in {
+		t := c.(map[string]interface{})
+
+		if v, ok := t["pod_affinity_term"].([]interface{}); ok && len(v) > 0 {
+			terms[i].PodAffinityTerm = expandPodAffinityTerm(v)
+		}
+
+		if v, ok := t["weight"].(int); ok {
+			terms[i].Weight = int32(v)
+		}
+	}
+
+	return terms
+}
+
+func expandPodAffinityTerms(in []interface{}) []v1.PodAffinityTerm {
+	if len(in) == 0 {
+		return []v1.PodAffinityTerm{}
+	}
+
+	terms := make([]v1.PodAffinityTerm, len(in))
+	for i, c := range in {
+		t := c.(map[string]interface{})
+		terms[i] = expandPodAffinityTermMap(t)
+	}
+
+	return terms
+}
+
+func expandPodAffinityTerm(l []interface{}) v1.PodAffinityTerm {
+	if len(l) == 0 || l[0] == nil {
+		return v1.PodAffinityTerm{}
+	}
+	in := l[0].(map[string]interface{})
+	return expandPodAffinityTermMap(in)
+}
+
+func expandPodAffinityTermMap(in map[string]interface{}) v1.PodAffinityTerm {
+	obj := v1.PodAffinityTerm{}
+
+	if v, ok := in["label_selector"].([]interface{}); ok && len(v) > 0 {
+		obj.LabelSelector = expandLabelSelector(v)
+	}
+
+	if v, ok := in["namespace"].([]string); ok && len(v) > 0 {
+		obj.Namespaces = v
+	}
+
+	if v, ok := in["topology_key"].(string); ok {
+		obj.TopologyKey = v
 	}
 
 	return obj
