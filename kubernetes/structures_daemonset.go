@@ -112,6 +112,9 @@ func expandRollingUpdateDaemonSet(p []interface{}) *appsv1.RollingUpdateDaemonSe
 	}
 	in := p[0].(map[string]interface{})
 
+	if v, ok := in["max_surge"]; ok {
+		obj.MaxSurge = expandRollingUpdateDaemonSetIntOrString(v.(string))
+	}
 	if v, ok := in["max_unavailable"]; ok {
 		obj.MaxUnavailable = expandRollingUpdateDaemonSetIntOrString(v.(string))
 	}
