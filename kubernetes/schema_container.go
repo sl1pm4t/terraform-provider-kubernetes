@@ -374,9 +374,10 @@ func containerFields(isUpdatable bool) map[string]*schema.Schema {
 			},
 		},
 		"image": {
-			Type:        schema.TypeString,
-			Optional:    true,
-			Description: "Docker image name. More info: http://kubernetes.io/docs/user-guide/images",
+			Type:             schema.TypeString,
+			Optional:         true,
+			DiffSuppressFunc: suppressNewImage,
+			Description:      "Docker image name. More info: http://kubernetes.io/docs/user-guide/images",
 		},
 		"image_pull_policy": {
 			Type:        schema.TypeString,
