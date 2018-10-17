@@ -16,3 +16,10 @@ func suppressEquivalentResourceQuantity(k, old, new string, d *schema.ResourceDa
 	}
 	return oldQ.Cmp(newQ) == 0
 }
+
+func suppressNewImage(k, old, new string, d *schema.ResourceData) bool {
+	if new != "" {
+		return false
+	}
+	return true
+}
