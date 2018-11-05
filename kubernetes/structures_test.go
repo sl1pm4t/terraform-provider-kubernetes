@@ -17,6 +17,11 @@ func TestIsInternalKey(t *testing.T) {
 		{"any.kubernetes.io", true},
 		{"kubernetes.io", true},
 		{"pv.kubernetes.io/any/path", true},
+		{"kubernetes.io/egress-bandwidth", false},
+		{"kubernetes.io/ingress.class", false},
+		{"app.kubernetes.io/any/path", false},
+		{"service.beta.kubernetes.io/any/path", false},
+		{"nginx.ingress.kubernetes.io/any/path", false},
 	}
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {

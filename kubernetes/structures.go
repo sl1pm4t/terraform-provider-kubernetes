@@ -14,6 +14,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+var externalKeys = []string{
+	"kubernetes.io/egress-bandwidth",
+	"kubernetes.io/ingress.class",
+	"app.kubernetes.io",
+	"service.beta.kubernetes.io",
+	"nginx.ingress.kubernetes.io",
+}
+
 func idParts(id string) (string, string, error) {
 	parts := strings.Split(id, "/")
 	if len(parts) != 2 {
@@ -163,6 +171,12 @@ func isKeyInMap(key string, d map[string]interface{}) bool {
 }
 
 func isInternalKey(annotationKey string) bool {
+	for _, key := range externalKeys {
+		if strings.Contains(annotationKey, key) {
+			return false
+		}
+	}
+
 	u, err := url.Parse("//" + annotationKey)
 	if err == nil && strings.Contains(u.Hostname(), "kubernetes.io") {
 		log.Printf("[DEBUG] %s is internal key", annotationKey)
