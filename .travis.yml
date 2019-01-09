@@ -1,20 +1,23 @@
 language: go
 sudo: false
 go:
-- '1.10'
+  - "1.11"
+env:
+  - GO111MODULE=on
+install: true
 before_script:
-- bash scripts/gogetcookie.sh
-- go get ./...
+  - bash scripts/gogetcookie.sh
+  - go get ./...
 script:
-- make fmtcheck
-- make vet
-- make test
+  - make fmtcheck
+  - make vet
+  - make test
 branches:
   only:
-  - custom
-  - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+    - custom
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
 before_deploy:
-- make targets
+  - env GO111MODULE=on make targets
 deploy:
   provider: releases
   api_key:
@@ -24,5 +27,5 @@ deploy:
   skip_cleanup: true
   on:
     repo: sl1pm4t/terraform-provider-kubernetes
-    tags: true 
+    tags: true
     branch: custom
