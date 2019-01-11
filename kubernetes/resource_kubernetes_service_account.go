@@ -27,6 +27,12 @@ func resourceKubernetesServiceAccount() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"metadata": namespacedMetadataSchema("service account", true),
+			"automount_service_account_token": {
+				Type:        schema.TypeBool,
+				Description: "It indicates whether pods running as this service account should have an API token automatically mounted",
+				Optional:    true,
+				Default:     true,
+			},
 			"image_pull_secret": {
 				Type:        schema.TypeSet,
 				Description: "A list of references to secrets in the same namespace to use for pulling any images in pods that reference this Service Account. More info: http://kubernetes.io/docs/user-guide/secrets#manually-specifying-an-imagepullsecret",
@@ -68,10 +74,12 @@ func resourceKubernetesServiceAccountCreate(d *schema.ResourceData, meta interfa
 
 	metadata := expandMetadata(d.Get("metadata").([]interface{}))
 	svcAcc := api.ServiceAccount{
-		AutomountServiceAccountToken: ptrToBool(false),
-		ObjectMeta:                   metadata,
-		ImagePullSecrets:             expandLocalObjectReferenceArray(d.Get("image_pull_secret").(*schema.Set).List()),
-		Secrets:                      expandServiceAccountSecrets(d.Get("secret").(*schema.Set).List(), ""),
+		ObjectMeta:       metadata,
+		ImagePullSecrets: expandLocalObjectReferenceArray(d.Get("image_pull_secret").(*schema.Set).List()),
+		Secrets:          expandServiceAccountSecrets(d.Get("secret").(*schema.Set).List(), ""),
+	}
+	if v, ok := d.GetOkExists("automount_service_account_token"); ok {
+		svcAcc.AutomountServiceAccountToken = ptrToBool(v.(bool))
 	}
 	log.Printf("[INFO] Creating new service account: %#v", svcAcc)
 	out, err := conn.CoreV1().ServiceAccounts(metadata.Namespace).Create(&svcAcc)
@@ -145,6 +153,8 @@ func resourceKubernetesServiceAccountRead(d *schema.ResourceData, meta interface
 	}
 	d.Set("image_pull_secret", flattenLocalObjectReferenceArray(svcAcc.ImagePullSecrets))
 
+	d.Set("automount_service_account_token", svcAcc.AutomountServiceAccountToken)
+
 	defaultSecretName := d.Get("default_secret_name").(string)
 	log.Printf("[DEBUG] Default secret name is %q", defaultSecretName)
 	secrets := flattenServiceAccountSecrets(svcAcc.Secrets, defaultSecretName)
@@ -168,6 +178,13 @@ func resourceKubernetesServiceAccountUpdate(d *schema.ResourceData, meta interfa
 		ops = append(ops, &ReplaceOperation{
 			Path:  "/imagePullSecrets",
 			Value: expandLocalObjectReferenceArray(v),
+		})
+	}
+	if d.HasChange("automount_service_account_token") {
+		v := d.Get("automount_service_account_token")
+		ops = append(ops, &ReplaceOperation{
+			Path:  "/automountServiceAccountToken",
+			Value: v.(bool),
 		})
 	}
 	if d.HasChange("secret") {
