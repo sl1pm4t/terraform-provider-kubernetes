@@ -176,6 +176,7 @@ func Provider() terraform.ResourceProvider {
 			"kubernetes_service_account":           resourceKubernetesServiceAccount(),
 			"kubernetes_stateful_set":              resourceKubernetesStatefulSet(),
 			"kubernetes_storage_class":             resourceKubernetesStorageClass(),
+			"kubernetes_pod_disruption_budget":     resourceKubernetesPodDisruptionBudget(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
