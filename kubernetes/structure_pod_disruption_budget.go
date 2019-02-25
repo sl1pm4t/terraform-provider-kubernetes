@@ -3,7 +3,6 @@ package kubernetes
 import (
 	"errors"
 	"k8s.io/api/policy/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"log"
 	"strconv"
@@ -16,7 +15,9 @@ func flattenPodDisruptionBudgetSpec(in v1beta1.PodDisruptionBudgetSpec) ([]inter
 		att["min_available"] = in.MinAvailable.String()
 	}
 
-	att["selector"] = in.Selector.MatchLabels
+	if in.Selector != nil {
+		att["selector"] = flattenLabelSelector(in.Selector)
+	}
 
 	if in.MaxUnavailable != nil {
 		att["max_unavailable"] = in.MaxUnavailable.String()
@@ -37,8 +38,8 @@ func expandPodDisruptionBudgetSpec(podDisruptionBudgetSpec []interface{}) (v1bet
 	log.Printf("[DEBUG] This is the instance the map we have extracted in expand method: %#v", in)
 
 	// Selector
-	obj.Selector = &metav1.LabelSelector{
-		MatchLabels: expandStringMap(in["selector"].(map[string]interface{})),
+	if v, ok := in["selector"].([]interface{}); ok && len(v) > 0 {
+		obj.Selector = expandLabelSelector(v)
 	}
 
 	// Validate spec here, to chuck us out if we have set both min & max set
