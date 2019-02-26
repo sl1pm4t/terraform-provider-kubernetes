@@ -21,8 +21,9 @@ func TestAccKubernetesPodDisruptionBudget_minimal(t *testing.T) {
 				Config: testAccKubernetesPodDisruptionBudget_minimal(name),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("kubernetes_pod_disruption_budget.test", "metadata.0.name", name),
-					resource.TestCheckResourceAttr("kubernetes_pod_disruption_budget.test", "spec.0.min_available", "50%"),
-					resource.TestCheckResourceAttr("kubernetes_pod_disruption_budget.test", "spec.0.selector.0.foo", "bar"),
+					resource.TestCheckResourceAttr("kubernetes_pod_disruption_budget.test", "spec.0.selector.0.match_expressions.#", "1"),
+					resource.TestCheckResourceAttr("kubernetes_pod_disruption_budget.test", "spec.0.selector.0.match_expressions.0.key", "foo"),
+					resource.TestCheckResourceAttr("kubernetes_pod_disruption_budget.test", "spec.0.selector.0.match_expressions.0.operator", "Exists"),
 				),
 			},
 		},
@@ -38,9 +39,14 @@ resource "kubernetes_pod_disruption_budget" "test" {
   spec {
     min_available = "50%%"
     selector {
-      foo = "bar"
-    }
+      match_expressions {
+      	key = "foo"
+      	operator = "Exists"
+      }
+	}
   }
 }
 `, name)
 }
+
+
