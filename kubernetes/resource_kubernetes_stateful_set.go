@@ -106,7 +106,7 @@ func resourceKubernetesStatefulSet() *schema.Resource {
 									"automount_service_account_token":  relocatedAttribute("automount_service_account_token"),
 									"subdomain":                        relocatedAttribute("subdomain"),
 									"termination_grace_period_seconds": relocatedAttribute("termination_grace_period_seconds"),
-									"volume": relocatedAttribute("volume"),
+									"volume":                           relocatedAttribute("volume"),
 								},
 							},
 						},
